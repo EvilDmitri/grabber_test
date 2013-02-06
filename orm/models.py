@@ -18,7 +18,8 @@ films_table = Table('films', metadata,
 metadata.create_all(engine)
 
 class Film(object):
-    def __init__(self, rus_name, eng_name, director, actors, film_img, age_limit, rate_r, still):
+    def __init__(self, rus_name=None, eng_name=None, director=None, actors=None, film_img=None,
+                age_limit=None, rate_r=None, still=None):
         self.rus_name = rus_name
         self.eng_name = eng_name
         self.director = director
@@ -30,5 +31,9 @@ class Film(object):
 
     def __repr__(self):
         return "Film - %s (%s)" % (self.rus_name, self.eng_name)
+
+    def save(self):
+        with open("data.txt", "w") as data:
+            data.write(self.__repr__())
 
 mapper(Film, films_table)
