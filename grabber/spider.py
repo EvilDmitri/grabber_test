@@ -7,7 +7,6 @@ import locale
 enc = locale.getpreferredencoding()
 
 from orm.models import Film
-from worker import worker
 
 BASE_PAGE = 'http://www.kinopoisk.ru/'
 START = '298'
