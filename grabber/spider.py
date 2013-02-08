@@ -1,5 +1,6 @@
 import urllib
 from grab.spider import Spider, Task, Data
+from grab.tools.files import hashed_path_details
 
 import os
 
@@ -10,7 +11,7 @@ import orm.models as model
 
 BASE_PAGE = 'http://www.kinopoisk.ru/'
 START = '298'
-directory = '../images'
+directory = '../images/'
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -36,37 +37,46 @@ class KinoSpider(Spider):
         ages = []
         for elem in grab.xpath_list('//tr[@class="ratePopup"]'):
             ages.append(elem.text_content())
-
         film.age_limit = " ".join(ages[0].split()[1:])
         film.rate_r = " ".join(ages[1].split()[2:])
 
-        model.store(film)
-
         image_link = grab.xpath('//div[@class="film-img-box"]').getchildren()[0].items()[1][1].split("'")[1]
-        filename = directory + os.path.sep + film.eng_name+'.jpg'
-        image = urllib.urlopen(image_link).read()
-        if not os.path.exists(filename):
-            with open(filename, "wb") as f:
-                f.write(image)
+        film.film_img = self.save_img(image_link, film.eng_name)['full_path']
+
+
 
         page = task.url + '/stills/'
-        yield Task('still', url=page, film_name=film.eng_name)
+        yield Task('still', url=page, film=film)
 
 
 
     def task_still(self, grab, task):
         a = grab.xpath('//table[@class="fotos"]')[0][0]
         images_link = BASE_PAGE + a[0].values()[0]
-        yield Task('get_still', url=images_link, film_name = task.film_name)
+        yield Task('get_still', url=images_link, film = task.film)
 
 
     def task_get_still(self, grab, task):
         a = grab.xpath('//img[@id="image"]')
         link = a.get("src")
-        filename = directory + os.path.sep + task.film_name + '(foto)' + '.jpg'
-        image = urllib.urlopen(link).read()
-        with open(filename, "wb") as f:
-            f.write(image)
+        task.film.still =  self.save_img(link, task.film.eng_name +'(foto)')['full_path']
+
+        model.store(task.film)
+
+
+
+    def save_img(self, image, name):
+        filename = hashed_path_details(name)
+        if not os.path.exists(directory + filename['directory']):
+            os.makedirs(directory + filename['directory'])
+
+        if not os.path.exists(directory + filename['full_path']):
+            image = urllib.urlopen(image).read()
+            with open(directory + filename['full_path'], "wb") as f:
+                print (directory + filename['full_path'])
+                f.write(image)
+        return filename
+
 
 
 
